@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -33,6 +34,7 @@ func NewCore() *Core {
 
 func (c *Core) Get(path string, handler ctx.HandlerFunc) {
 	urlPath := strings.ToUpper(path)
+	fmt.Println(urlPath)
 	c.router["GET"][urlPath] = handler
 }
 
@@ -53,7 +55,8 @@ func (c *Core) Delete(path string, handler ctx.HandlerFunc) {
 
 // FindRouterByRequest find request's handler according to request's method and url
 func (c *Core) FindRouterByRequest(req *http.Request) ctx.HandlerFunc {
-	upperPath := strings.Trim(strings.ToUpper(req.URL.Path), "/")
+	upperPath := "/SUB" + strings.ToUpper(req.URL.Path)
+	fmt.Println(upperPath)
 	upperMethod := strings.ToUpper(req.Method)
 	if methodHandler, ok := c.router[upperMethod]; ok {
 		if handler, ok := methodHandler[upperPath]; ok {
@@ -61,6 +64,10 @@ func (c *Core) FindRouterByRequest(req *http.Request) ctx.HandlerFunc {
 		}
 	}
 	return nil
+}
+
+func (c *Core) GroupFunc(prefix string) GroupInterface {
+	return NewGroup(c, prefix)
 }
 
 // Run defines a method to run and listen the server's port specified
