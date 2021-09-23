@@ -21,7 +21,7 @@ func FooHandler(c *ctx.Context) error {
 				panicChan <- p
 			}
 		}()
-		time.Sleep(10 * time.Second)
+		time.Sleep(10 * time.Millisecond)
 		c.Json(200, "ok")
 		finish <- struct{}{}
 	}()

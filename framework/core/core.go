@@ -3,22 +3,64 @@ package core
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	ctx "saiang/framework/context"
 )
 
-// Core defines the framework's core struct
+// Core defines the framework's core struct. router is a double-layer map,
+// the first layer key is the request method, the second layer key is the request
+// url path, value is a handler function
 type Core struct {
-	router map[string]ctx.HandlerFunc
+	router map[string]map[string]ctx.HandlerFunc
 }
 
 // NewCore initialize the Core struct
 func NewCore() *Core {
-	return &Core{router: make(map[string]ctx.HandlerFunc)}
+	// define the second map
+	getRouter := map[string]ctx.HandlerFunc{}
+	postRouter := map[string]ctx.HandlerFunc{}
+	putRouter := map[string]ctx.HandlerFunc{}
+	deleteRouter := map[string]ctx.HandlerFunc{}
+	// write the second layer map to the first layer map
+	router := map[string]map[string]ctx.HandlerFunc{}
+	router["GET"] = getRouter
+	router["POST"] = postRouter
+	router["PUT"] = putRouter
+	router["DELETE"] = deleteRouter
+	return &Core{router: router}
 }
 
 func (c *Core) Get(path string, handler ctx.HandlerFunc) {
-	c.router[path] = handler
+	urlPath := strings.ToUpper(path)
+	c.router["GET"][urlPath] = handler
+}
+
+func (c *Core) Post(path string, handler ctx.HandlerFunc) {
+	urlPath := strings.ToUpper(path)
+	c.router["POST"][urlPath] = handler
+}
+
+func (c *Core) Put(path string, handler ctx.HandlerFunc) {
+	urlPath := strings.ToUpper(path)
+	c.router["PUT"][urlPath] = handler
+}
+
+func (c *Core) Delete(path string, handler ctx.HandlerFunc) {
+	urlPath := strings.ToUpper(path)
+	c.router["DELETE"][urlPath] = handler
+}
+
+// FindRouterByRequest find request's handler according to request's method and url
+func (c *Core) FindRouterByRequest(req *http.Request) ctx.HandlerFunc {
+	upperPath := strings.Trim(strings.ToUpper(req.URL.Path), "/")
+	upperMethod := strings.ToUpper(req.Method)
+	if methodHandler, ok := c.router[upperMethod]; ok {
+		if handler, ok := methodHandler[upperPath]; ok {
+			return handler
+		}
+	}
+	return nil
 }
 
 // Run defines a method to run and listen the server's port specified
@@ -31,8 +73,9 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("core.ServeHTTP")
 	ctx := ctx.NewContext(r, w)
 
-	router := c.router["foo"]
+	router := c.FindRouterByRequest(r)
 	if router == nil {
+		ctx.Json(404, "not found")
 		return
 	}
 	log.Println("core.router")

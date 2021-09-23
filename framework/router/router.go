@@ -6,5 +6,6 @@ import (
 )
 
 func RegisterRouter(core *co.Core) {
-	core.Get("foo", handler.FooHandler)
+	// static router
+	core.Get("Foo", handler.FooHandler)
 }
