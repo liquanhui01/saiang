@@ -30,15 +30,15 @@ func (g *Group) Get(path string, handler ctx.HandlerFunc) {
 
 func (g *Group) Post(path string, handler ctx.HandlerFunc) {
 	url := g.prefix + path
-	g.core.Get(url, handler)
+	g.core.Post(url, handler)
 }
 
 func (g *Group) Put(path string, handler ctx.HandlerFunc) {
 	url := g.prefix + path
-	g.core.Get(url, handler)
+	g.core.Put(url, handler)
 }
 
 func (g *Group) Delete(path string, handler ctx.HandlerFunc) {
 	url := g.prefix + path
-	g.core.Get(url, handler)
+	g.core.Delete(url, handler)
 }

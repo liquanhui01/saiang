@@ -1,17 +1,21 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	co "saiang/framework/core"
-	"saiang/framework/router"
 )
 
 func main() {
 	core := co.NewCore()
-	router.RegisterRouter(core)
-	// server := &http.Server{
-	// 	Handler: core,
-	// 	Addr:    ":8080",
-	// }
-	// server.ListenAndServe()
-	core.Run(":8080")
+	RegisterRouter(core)
+	go func() {
+		core.Run(":8080")
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-quit
 }
