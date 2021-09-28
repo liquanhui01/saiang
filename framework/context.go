@@ -10,19 +10,18 @@ import (
 )
 
 type (
-	HandlerFunc func(w http.ResponseWriter, r http.Request)
-	IContext    interface {
-		GetRequest() *http.Request
-		GetResponse() http.ResponseWriter
-		HasTimeout() bool
+	HandlerFunc func(w http.ResponseWriter, r *http.Request)
+	IContext    struct {
 	}
+
 	Context struct {
 		response   http.ResponseWriter
 		request    *http.Request
-		ctx        context.Context
-		mux        *sync.RWMutex
+		path       string
 		hasTimeout bool
-		handler    HandlerFunc
+		mux        *sync.RWMutex
+		ctx        context.Context
+		handlers   HandlerFunc
 	}
 )
 
@@ -46,13 +45,9 @@ func NewContext(w http.ResponseWriter, r *http.Request) *Context {
 	return &Context{
 		response: w,
 		request:  r,
+		path:     r.URL.Path,
 		mux:      &sync.RWMutex{},
 	}
-}
-
-// RWMux returns the mux of Context
-func (c *Context) RWMux() *sync.RWMutex {
-	return c.mux
 }
 
 // GetRequest returns the request of Context
@@ -60,27 +55,31 @@ func (c *Context) GetRequest() *http.Request {
 	return c.request
 }
 
-// GetResponse return the response of Context
+// GetRequest returns the response of Context
 func (c *Context) GetResponse() http.ResponseWriter {
 	return c.response
 }
 
-// HasTimeout returns the hasTimeout of Context
-func (c *Context) HasTimeout() bool {
+// GetPath return the path of Context
+func (c *Context) GetPath() string {
+	return c.path
+}
+
+// GetTimeout return the hasTimeout of Context
+func (c *Context) GetTimeout() bool {
 	return c.hasTimeout
 }
 
-// SethasTimeout set the hasTimeout of Context to true
-func (c *Context) SethasTimeout() {
+// SetTimeout set hasTimeout to true
+func (c *Context) SetTimeout() {
 	c.hasTimeout = true
 }
 
-// BaseContext returns base context from request
+// #region context
 func (c *Context) BaseContext() context.Context {
 	return c.request.Context()
 }
 
-// Deadline returns two variables, deadline is time type, ok is bool type
 func (c *Context) Deadline() (deadline time.Time, ok bool) {
 	return c.BaseContext().Deadline()
 }
@@ -89,18 +88,17 @@ func (c *Context) Done() <-chan struct{} {
 	return c.BaseContext().Done()
 }
 
-// Value defines a function that both the parameters and return values are
-// interface types
 func (c *Context) Value(key interface{}) interface{} {
 	return c.BaseContext().Value(key)
 }
 
-// #region form post
+// #endregion
 
+// #region form post
 func (c *Context) FormInt(key string, def int) int {
 	param := c.formAll()
-	if val, ok := param[key]; ok && len(val) > 0 {
-		intVal, err := strconv.Atoi(val[len(val)-1])
+	if vals, ok := param[key]; ok && len(vals) > 0 {
+		intVal, err := strconv.Atoi(vals[len(vals)-1])
 		if err != nil {
 			return def
 		}
@@ -118,34 +116,33 @@ func (c *Context) FormString(key string, def []string) []string {
 }
 
 func (c *Context) formAll() map[string][]string {
-	if c.request != nil {
-		return map[string][]string(c.request.PostForm)
+	if c.request == nil {
+		return map[string][]string{}
 	}
-	return map[string][]string{}
+	return map[string][]string(c.request.PostForm)
 }
 
 // #endregion
 
 // #region response
-// Json defines a method that set header and transfer obj to JSON
-func (c *Context) Json(status int, obj interface{}) error {
-	byt, err := json.Marshal(obj)
+// Json defines a method that set header and transfer data to JSON
+func (c *Context) Json(data interface{}, status int) error {
+	byt, err := json.Marshal(data)
 	if err != nil {
 		c.response.WriteHeader(500)
 		return err
 	}
-	c.Blob(status, byt, MIMEApplicationJSON)
+	c.Blob(MIMEApplicationJSON, byt, status)
 	return nil
 }
 
-// HTML
-func (c *Context) HTML(status int, html string) {
-	c.Blob(status, []byte(html), MIMETextHTML)
+func (c *Context) HTML(html string, status int) {
+	c.Blob(MIMETextHTML, []byte(html), status)
 }
 
 // Blob perform specific settings, parameters include status, data and contentType
-func (c *Context) Blob(status int, data []byte, contentType string) {
-	if c.HasTimeout() {
+func (c *Context) Blob(contentType string, data []byte, status int) {
+	if c.hasTimeout {
 		return
 	}
 	c.response.Header().Set("Content-Type", contentType)
@@ -153,4 +150,4 @@ func (c *Context) Blob(status int, data []byte, contentType string) {
 	c.response.Write(data)
 }
 
-// # endregion
+// #endregion
