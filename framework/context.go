@@ -27,18 +27,6 @@ type (
 )
 
 const (
-	CONNECT = http.MethodConnect
-	DELETE  = http.MethodDelete
-	GET     = http.MethodGet
-	HEAD    = http.MethodHead
-	OPTIONS = http.MethodOptions
-	PATCH   = http.MethodPatch
-	PUT     = http.MethodPut
-	POST    = http.MethodPost
-	TRACE   = http.MethodTrace
-)
-
-const (
 	MIMEApplicationJSON            = "application/json"
 	MIMEApplicationJSONCharsetUTF8 = MIMEApplicationJSON + ";" + charsetUTF8
 	MIMEApplicationXML             = "application/xml"
